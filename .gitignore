@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+/infra/pass.txt
+**/sim_population
+/.idea/**
