@@ -1,6 +1,5 @@
 import pyodbc
 from datetime import datetime
-from datetime import timedelta
 import random
 import os
 import string
@@ -29,25 +28,83 @@ cnxn = pyodbc.connect(
 
 
 def generate_locations(num_locations):
+    # num_locations = 10
+
+    address_suffixes = ['Rd.', 'St.', 'Blvd.', 'Ln.', 'Ave.']
+
+    generated_locations = [
+        f"{random.randint(1000, 9999)} {names.get_last_name()} {random.choice(address_suffixes)}"
+        for _ in range(0, num_locations)
+    ]
+
+    location_df = pd.DataFrame.from_dict(
+        {
+            'LocationId': list(range(1, num_locations + 1)),
+            'Address': generated_locations
+        }
+    )
+    print(location_df)
+
     return
 
 
 def generate_products(num_products):
+    # num_products = 10
+
+    letters = string.ascii_uppercase
+
+    generated_products = [
+        f"widget-{''.join(random.choice(letters) for i in range(5))}"
+        for _ in range(0, num_products)
+    ]
+
+    product_df = pd.DataFrame.from_dict(
+        {
+            'ProductId': list(range(1, num_products + 1)),
+            'ProductName': generated_products
+        }
+    )
+    print(product_df)
+
+    # TODO write to SQL
+
     return
 
 
 def generate_orders(num_orders):
+    # num_orders = 10
+
+    date_format = '%Y-%m-%d'
+
+    # generate and sort random dates
+    generated_order_dates = [
+        datetime.strftime(datetime(2022, random.randint(1, 12), random.randint(1, 28)), date_format)
+        for _ in range(0, num_orders)
+    ]
+    generated_order_dates.sort()
+
+    order_df = pd.DataFrame.from_dict(
+        {
+            'OrderId': list(range(1, num_orders + 1)),
+            'OrderDate': generated_order_dates
+        }
+    )
+
+    print(order_df)
+
+    # TODO write to SQL
+
     return
 
 
 def generate_suppliers(num_suppliers):
-    num_suppliers = 10
+    # num_suppliers = 10
 
     company_suffixes = ['Ltd.', 'Corp', 'Co.', 'LLC', 'Inc.', 'Supply']
     letters = string.ascii_uppercase
 
     generated_suppliers = [
-        ''.join(random.choice(letters) for i in range(3)) + ' ' + random.choice(company_suffixes)
+        f"{''.join(random.choice(letters) for i in range(3))} {random.choice(company_suffixes)}"
         for _ in range(0, num_suppliers)
     ]
 
