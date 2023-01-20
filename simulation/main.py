@@ -27,6 +27,7 @@ cnxn = pyodbc.connect(
 )
 
 
+# TODO location may be replaced by latitude & longitude
 def generate_locations(num_locations):
     # num_locations = 10
 
