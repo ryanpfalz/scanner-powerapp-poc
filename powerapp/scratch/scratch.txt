@@ -1,0 +1,7 @@
+detailsScreen_Gallery:
+
+Data Items - including email:
+SortByColumns(Search(FactInventory, User().Email,"EmployeeId"), "ScannedDateTime", Descending)
+
+Data Items - excluding email (doing this in the meantime):
+SortByColumns(FactInventory ,"ScannedDateTime", Descending)

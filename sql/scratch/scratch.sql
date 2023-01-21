@@ -29,6 +29,7 @@ DELETE FROM dbo.FactInventory
 --
 
 SELECT
+    i.CodeId,
     p.ProductName,
     s.SupplierName,
     o.OrderDate,
