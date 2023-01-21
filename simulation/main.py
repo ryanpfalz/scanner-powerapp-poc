@@ -40,12 +40,12 @@ SUPPLIERS_TO_GENERATE = 10
 EMPLOYEE_POOL_SIZE = 3
 
 
-def df_to_sql(df, table, delete):
+def df_to_sql(df, schema, table, delete):
     try:
         if delete:
             sql = text(f'DELETE FROM {table}')
             engine.execute(sql)
-        df.to_sql(table, engine, schema="dbo", if_exists='append', index=False)
+        df.to_sql(table, engine, schema=schema, if_exists='append', index=False)
         return df
     except Exception as e:
         print(e)
@@ -91,7 +91,7 @@ def generate_products(num_products, drop_and_insert=True):
 
     # write to sql and return df if successful
     # return df_to_sql(product_df, 'DimProduct')
-    return df_to_sql(df=product_df, table='DimProduct', delete=drop_and_insert)
+    return df_to_sql(df=product_df, schema='dbo', table='DimProduct', delete=drop_and_insert)
 
 
 def generate_orders(num_orders, drop_and_insert=True):
@@ -114,7 +114,7 @@ def generate_orders(num_orders, drop_and_insert=True):
     )
 
     # write to sql and return df if successful
-    return df_to_sql(df=order_df, table='DimOrder', delete=drop_and_insert)
+    return df_to_sql(df=order_df, schema='dbo', table='DimOrder', delete=drop_and_insert)
 
 
 def generate_suppliers(num_suppliers, drop_and_insert=True):
@@ -138,7 +138,7 @@ def generate_suppliers(num_suppliers, drop_and_insert=True):
 
     # write to sql and return df if successful
     # return df_to_sql(supplier_df, 'DimSupplier')
-    return df_to_sql(df=supplier_df, table='DimSupplier', delete=drop_and_insert)
+    return df_to_sql(df=supplier_df, schema='dbo', table='DimSupplier', delete=drop_and_insert)
 
 
 def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GENERATE, orders=ORDERS_TO_GENERATE,
@@ -150,9 +150,9 @@ def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GEN
 
     qr_data = {
         'codeId': qr_id,
-        'productId': random.choice(range(1, products)),
-        'supplierId': random.choice(range(1, suppliers)),
-        'orderId': random.choice(range(1, orders)),
+        'productId': str(random.choice(range(1, products))).zfill(len(str(abs(products)))),
+        'supplierId': str(random.choice(range(1, suppliers))).zfill(len(str(abs(suppliers)))),
+        'orderId': str(random.choice(range(1, orders))).zfill(len(str(abs(orders)))),
         'quantity': quantity
     }
 
@@ -176,6 +176,7 @@ def generate_employee_emails(num_to_choose=1):
     return selected_emails
 
 
+# TODO generate however many are required for # of employees
 def generate_coordinates(num_records=1):
     return pd.DataFrame([
         {
@@ -186,7 +187,7 @@ def generate_coordinates(num_records=1):
     ])
 
 
-def test_insert_fact_records(num_records=2):
+def test_insert_fact_records(num_records=99):
     # generate QR data
     qr_data = [
         generate_random_qr(show_image=False)
@@ -199,20 +200,33 @@ def test_insert_fact_records(num_records=2):
     qr_df['employeeId'] = employees
 
     # generate coordinates to tie to user data (this would come from Power App client) and merge as columns
+    # TODO associate one coordinate pair with one employee
     qr_df = pd.concat(
         [qr_df, generate_coordinates(num_records=len(qr_df))], axis=1
     )
 
-    print(qr_data)
+    # generate create datetimes
+    datetimes = [
+        datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+        for _ in range(0, num_records)
+    ]
+    qr_df['scannedDateTime'] = datetimes
+
+    # print(qr_df)
+
+    return df_to_sql(df=qr_df, schema='dbo', table='FactInventory', delete=False)
 
 
 def main():
     # TODO remove FKs, truncate dim and fact tables, and regenerate FKs before running simulation (?)
 
     # generate_locations(LOCATIONS_TO_GENERATE)
-    generate_products(PRODUCTS_TO_GENERATE)
-    generate_orders(ORDERS_TO_GENERATE)
-    generate_suppliers(SUPPLIERS_TO_GENERATE)
+
+    # only pass in the global vars to make sure stuff doesnt get messy
+    # drop_and_insert doesnt really work
+    generate_products(PRODUCTS_TO_GENERATE, drop_and_insert=False)
+    generate_orders(ORDERS_TO_GENERATE, drop_and_insert=False)
+    generate_suppliers(SUPPLIERS_TO_GENERATE, drop_and_insert=False)
 
     generate_random_qr(PRODUCTS_TO_GENERATE, SUPPLIERS_TO_GENERATE, ORDERS_TO_GENERATE)
     # TODO generate barcode
