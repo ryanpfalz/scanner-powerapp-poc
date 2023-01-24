@@ -9,7 +9,10 @@ SELECT TOP (1000)
       , [Longitude]
       , [ScannedDateTime]
 FROM [dbo].[FactInventory]
+WHERE EmployeeId LIKE '%ryanpfalz%'
+-- WHERE CodeId like '%test%'
 
+DELETE FROM dbo.FactInventory WHERE CodeId LIKE '%test%'
 
 SELECT *
 FROM dbo.[DimProduct]
@@ -24,7 +27,7 @@ FROM dbo.[DimSupplier]
 SELECT *
 FROM dbo.[DimOrder]
 
-DELETE FROM dbo.FactInventory
+-- DELETE FROM dbo.FactInventory
 
 --
 
@@ -46,3 +49,4 @@ FROM
     ON i.SupplierId = s.SupplierId
     LEFT JOIN dbo.[DimOrder] o
     ON i.OrderId = o.OrderId
+WHERE EmployeeId LIKE '%ryanpfalz%'

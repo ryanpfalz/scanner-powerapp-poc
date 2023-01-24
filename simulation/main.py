@@ -141,6 +141,7 @@ def generate_suppliers(num_suppliers, drop_and_insert=True):
     return df_to_sql(df=supplier_df, schema='dbo', table='DimSupplier', delete=drop_and_insert)
 
 
+# generate_random_qr(PRODUCTS_TO_GENERATE, SUPPLIERS_TO_GENERATE, ORDERS_TO_GENERATE)
 def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GENERATE, orders=ORDERS_TO_GENERATE,
                        show_image=True):
     # quantity can be anywhere between 1 and 30
@@ -149,7 +150,7 @@ def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GEN
     qr_id = str(uuid.uuid4())
 
     qr_data = {
-        'codeId': qr_id,
+        "codeId": qr_id,
         'productId': str(random.choice(range(1, products))).zfill(len(str(abs(products)))),
         'supplierId': str(random.choice(range(1, suppliers))).zfill(len(str(abs(suppliers)))),
         'orderId': str(random.choice(range(1, orders))).zfill(len(str(abs(orders)))),
@@ -157,11 +158,11 @@ def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GEN
     }
 
     if show_image:
-        qr = qrcode.make(qr_data)
-        print(qr_data)
+        qr = qrcode.make(json.dumps(qr_data))
+        print(json.dumps(qr_data))
         qr.show()
 
-    return qr_data
+    return json.dumps(qr_data)
 
 
 def generate_employee_emails(num_to_choose=1):
