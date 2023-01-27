@@ -171,3 +171,121 @@ Patch(
     }
 );
 
+// with check for 13 digit:
+
+Collect(
+    colScannedItems,
+    Table({
+        CodeId: Text(ParseJSON(BarcodeScanner1.Value).codeId),
+        ProductId: Text(ParseJSON(BarcodeScanner1.Value).productId),
+        SupplierId: Text(ParseJSON(BarcodeScanner1.Value).supplierId),
+        OrderId: Text(ParseJSON(BarcodeScanner1.Value).orderId),
+        Quantity: Value(ParseJSON(BarcodeScanner1.Value).quantity)
+    })
+);
+
+Patch(
+    FactInventory,
+    Defaults(FactInventory),
+    { 
+        CodeId: First(colScannedItems).CodeId,
+        ProductId: First(colScannedItems).ProductId,
+        SupplierId: First(colScannedItems).SupplierId, 
+        OrderId: First(colScannedItems).OrderId, 
+        Quantity: First(colScannedItems).Quantity, 
+        EmployeeId: User().Email,
+        Latitude: Location.Latitude,
+        Longitude: Location.Longitude,
+        ScannedDateTime: Now()
+    }
+);
+
+If(
+    IsError(
+        ParseJSON(BarcodeScanner1.Value)
+    ),
+    Set(condition, "barcode"),
+    Set(condition, "qr")
+)
+
+// barcode to db
+    Collect(
+        colScannedItems,
+        Table({
+            CodeId: BarcodeScanner1.Value,
+            ProductId: BarcodeScanner1.Value
+        })
+    );
+
+    Patch(
+        FactInventory,
+        Defaults(FactInventory),
+        { 
+            CodeId: First(colScannedItems).CodeId,
+            ProductId: First(colScannedItems).ProductId,
+            SupplierId: Blank(), 
+            OrderId: Blank(), 
+            Quantity: Blank(), 
+            EmployeeId: Blank(),
+            Latitude: Location.Latitude,
+            Longitude: Location.Longitude,
+            ScannedDateTime: Now()
+        }
+    );
+
+// final condition
+
+If(
+    IsError(
+        ParseJSON(BarcodeScanner1.Value).CodeId
+    ),
+    // If error then barcode
+        Collect(
+        colScannedItems,
+        Table({
+            CodeId: GUID(),
+            ProductId: BarcodeScanner1.Value
+        })
+    );
+
+    Patch(
+        FactInventory,
+        Defaults(FactInventory),
+        { 
+            CodeId: Last(colScannedItems).CodeId,
+            ProductId: Last(colScannedItems).ProductId,
+            EmployeeId: User().Email,
+            Latitude: Location.Latitude,
+            Longitude: Location.Longitude,
+            ScannedDateTime: Now()
+        }
+    ),
+    
+    // Else then QR
+    Collect(
+        colScannedItems,
+        Table({
+            CodeId: Text(ParseJSON(BarcodeScanner1.Value).codeId),
+            ProductId: Text(ParseJSON(BarcodeScanner1.Value).productId),
+            SupplierId: Text(ParseJSON(BarcodeScanner1.Value).supplierId),
+            OrderId: Text(ParseJSON(BarcodeScanner1.Value).orderId),
+            Quantity: Value(ParseJSON(BarcodeScanner1.Value).quantity)
+        })
+    );
+
+    Patch(
+        FactInventory,
+        Defaults(FactInventory),
+        { 
+            CodeId: First(colScannedItems).CodeId,
+            ProductId: First(colScannedItems).ProductId,
+            SupplierId: First(colScannedItems).SupplierId, 
+            OrderId: First(colScannedItems).OrderId, 
+            Quantity: First(colScannedItems).Quantity, 
+            EmployeeId: User().Email,
+            Latitude: Location.Latitude,
+            Longitude: Location.Longitude,
+            ScannedDateTime: Now()
+        }
+    );
+);

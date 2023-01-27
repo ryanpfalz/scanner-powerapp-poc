@@ -33,6 +33,7 @@ FROM dbo.[DimOrder]
 
 SELECT
     i.CodeId,
+    i.ProductId,
     p.ProductName,
     s.SupplierName,
     o.OrderDate,
@@ -50,3 +51,6 @@ FROM
     LEFT JOIN dbo.[DimOrder] o
     ON i.OrderId = o.OrderId
 WHERE EmployeeId LIKE '%ryanpfalz%'
+
+DELETE FROM dbo.FactInventory
+-- DELETE FROM dbo.DimProduct

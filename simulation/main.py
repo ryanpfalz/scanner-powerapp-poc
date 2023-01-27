@@ -10,7 +10,7 @@ import uuid
 from sqlalchemy import create_engine, text, sql, Table, MetaData
 import urllib
 import pyodbc
-from barcode import EAN13
+from barcode import EAN13, get_barcode_class
 from barcode.writer import ImageWriter
 
 # config
@@ -106,12 +106,15 @@ def generate_products(num_products, drop_and_insert=True):
     # Barcode
     generated_barcode_products = [
         f"widget-{''.join(random.choice(letters) for i in range(5))}"
-        for _ in range(0, num_products)
+        # for _ in range(0, num_products)
+        for _ in range(0, 1)
     ]
 
+    # TODO: generating random numbers and then converting to UPC wasnt working, using known valid number for demo
     bc_product_df = pd.DataFrame.from_dict(
         {
-            'ProductId': ["%0.13d" % random.randint(0, 999999999999) for _ in range(1, num_products + 1)],
+            'ProductId': '049000042511',
+            # 'ProductId': ["%0.13d" % random.randint(0, 999999999999) for _ in range(1, num_products + 1)],
             'ProductName': generated_barcode_products,
             'CodeType': 'bc'
         }
@@ -200,10 +203,12 @@ def generate_random_barcode(show_image=True):
     sql_q = f"SELECT ProductId FROM [dbo].[DimProduct] WHERE CodeType = 'bc'"
     bc_ids_in_db = list(pd.read_sql(sql_q, engine)['ProductId'])
 
-    chosen_id = bc_ids_in_db[random.choice(range(1, len(bc_ids_in_db)))]
+    chosen_id = random.choice(bc_ids_in_db)
 
     if show_image:
-        code = EAN13(chosen_id, writer=ImageWriter())
+        bc_format = get_barcode_class('upc')
+        code = bc_format(chosen_id, writer=ImageWriter())
+        # code = EAN13(chosen_id, writer=ImageWriter())
         print(code)
         code.render().show()
 
@@ -277,7 +282,6 @@ def main():
 
     generate_random_qr(PRODUCTS_TO_GENERATE, SUPPLIERS_TO_GENERATE, ORDERS_TO_GENERATE)
     generate_random_barcode()
-    # TODO generate barcode
 
     test_insert_fact_records()
 
