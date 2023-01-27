@@ -12,30 +12,12 @@ import urllib
 import pyodbc
 from barcode import EAN13
 from barcode.writer import ImageWriter
-import shutil
-
 
 # config
 pd.set_option('display.max_columns', None)
 
 base_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 root_folder = 'simulation'
-tmp_dir = 'tmp'
-tmp_path = f'{base_dir}/{root_folder}/{tmp_dir}'
-
-# create temp path - this path is ignored in gitignore
-if os.path.exists(tmp_path):
-    for filename in os.listdir(tmp_path):
-        file_path = os.path.join(tmp_path, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
-else:
-    os.mkdir(tmp_path)
 
 with open(f'{base_dir}/infra/config.json') as jf:
     config = json.load(jf)
@@ -129,7 +111,7 @@ def generate_products(num_products, drop_and_insert=True):
 
     bc_product_df = pd.DataFrame.from_dict(
         {
-            'ProductId': ["%0.12d" % random.randint(0, 999999999999) for _ in range(1, num_products + 1)],
+            'ProductId': ["%0.13d" % random.randint(0, 999999999999) for _ in range(1, num_products + 1)],
             'ProductName': generated_barcode_products,
             'CodeType': 'bc'
         }
@@ -214,28 +196,18 @@ def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GEN
 
 
 # numeric only barcode to represent product ID
-def generate_random_barcode(products=PRODUCTS_TO_GENERATE, show_image=True):
-
+def generate_random_barcode(show_image=True):
     sql_q = f"SELECT ProductId FROM [dbo].[DimProduct] WHERE CodeType = 'bc'"
     bc_ids_in_db = list(pd.read_sql(sql_q, engine)['ProductId'])
+
     chosen_id = bc_ids_in_db[random.choice(range(1, len(bc_ids_in_db)))]
 
-    # qr_data = {
-    #     "codeId": qr_id,
-    #     'productId': str(random.choice(range(1, products))).zfill(len(str(abs(products)))),
-    #     'supplierId': str(random.choice(range(1, suppliers))).zfill(len(str(abs(suppliers)))),
-    #     'orderId': str(random.choice(range(1, orders))).zfill(len(str(abs(orders)))),
-    #     'quantity': quantity
-    # }
-
-    code = EAN13(chosen_id, writer=ImageWriter())
-    code
     if show_image:
-        qr = qrcode.make(json.dumps(qr_data))
-        print(json.dumps(qr_data))
-        qr.show()
+        code = EAN13(chosen_id, writer=ImageWriter())
+        print(code)
+        code.render().show()
 
-    return json.dumps(qr_data)
+    return chosen_id
 
 
 def generate_employee_emails(num_to_choose=1):
@@ -304,6 +276,7 @@ def main():
     generate_suppliers(SUPPLIERS_TO_GENERATE, drop_and_insert=False)
 
     generate_random_qr(PRODUCTS_TO_GENERATE, SUPPLIERS_TO_GENERATE, ORDERS_TO_GENERATE)
+    generate_random_barcode()
     # TODO generate barcode
 
     test_insert_fact_records()
