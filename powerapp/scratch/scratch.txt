@@ -143,7 +143,7 @@ Collect(
 First(colScannedItems).CodeId
 
 
-// final:
+// final (without try/catch):
 Collect(
     colScannedItems,
     Table({
@@ -170,3 +170,4 @@ Patch(
         ScannedDateTime: Now()
     }
 );
+

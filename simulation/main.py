@@ -7,14 +7,35 @@ import json
 import qrcode
 import pandas as pd
 import uuid
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, sql, Table, MetaData
 import urllib
+import pyodbc
+from barcode import EAN13
+from barcode.writer import ImageWriter
+import shutil
+
 
 # config
 pd.set_option('display.max_columns', None)
 
 base_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
 root_folder = 'simulation'
+tmp_dir = 'tmp'
+tmp_path = f'{base_dir}/{root_folder}/{tmp_dir}'
+
+# create temp path - this path is ignored in gitignore
+if os.path.exists(tmp_path):
+    for filename in os.listdir(tmp_path):
+        file_path = os.path.join(tmp_path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
+else:
+    os.mkdir(tmp_path)
 
 with open(f'{base_dir}/infra/config.json') as jf:
     config = json.load(jf)
@@ -31,6 +52,12 @@ driver = "ODBC Driver 18 for SQL Server"
 
 engine_stmt = f"mssql+pyodbc://{username}:{sql_pass}@{server}/{database}?driver={urllib.parse.quote_plus(driver)}"
 engine = create_engine(engine_stmt)
+# db_metadata = MetaData(bind=engine)
+
+pyodbc_conn = pyodbc.connect(
+    f'DRIVER={{{driver}}};SERVER={server};DATABASE={database};ENCRYPT=yes;UID={username};PWD={sql_pass}',
+    autocommit=True)
+cursor = pyodbc_conn.cursor()
 
 # locations, products, orders, and suppliers will have simple integer IDs in this demo
 LOCATIONS_TO_GENERATE = 10
@@ -40,11 +67,14 @@ SUPPLIERS_TO_GENERATE = 10
 EMPLOYEE_POOL_SIZE = 3
 
 
+# NOTE: NEED TO DELETE FROM FACTINVENTORY FIRST OR THERE WILL BE FK ERRORS
 def df_to_sql(df, schema, table, delete):
+    table = 'DimProduct'
     try:
         if delete:
-            sql = text(f'DELETE FROM {table}')
-            engine.execute(sql)
+            cursor.execute(f"DELETE FROM dbo.FactInventory")
+            cursor.execute(f"DELETE FROM {table}")
+            # engine.execute(sql)
         df.to_sql(table, engine, schema=schema, if_exists='append', index=False)
         return df
     except Exception as e:
@@ -76,22 +106,40 @@ def generate_products(num_products, drop_and_insert=True):
 
     letters = string.ascii_uppercase
 
-    generated_products = [
+    # QR
+    generated_qr_products = [
         f"widget-{''.join(random.choice(letters) for i in range(5))}"
         for _ in range(0, num_products)
     ]
 
-    product_df = pd.DataFrame.from_dict(
+    qr_product_df = pd.DataFrame.from_dict(
         {
             'ProductId': [str(_).zfill(len(str(abs(num_products)))) for _ in range(1, num_products + 1)],
-            'ProductName': generated_products
+            'ProductName': generated_qr_products,
+            'CodeType': 'qr'
         }
     )
     # print(product_df)
 
+    # Barcode
+    generated_barcode_products = [
+        f"widget-{''.join(random.choice(letters) for i in range(5))}"
+        for _ in range(0, num_products)
+    ]
+
+    bc_product_df = pd.DataFrame.from_dict(
+        {
+            'ProductId': ["%0.12d" % random.randint(0, 999999999999) for _ in range(1, num_products + 1)],
+            'ProductName': generated_barcode_products,
+            'CodeType': 'bc'
+        }
+    )
+
+    qr_bc_df = pd.concat([qr_product_df, bc_product_df], axis=0)
+
     # write to sql and return df if successful
     # return df_to_sql(product_df, 'DimProduct')
-    return df_to_sql(df=product_df, schema='dbo', table='DimProduct', delete=drop_and_insert)
+    return df_to_sql(df=qr_bc_df, schema='dbo', table='DimProduct', delete=drop_and_insert)
 
 
 def generate_orders(num_orders, drop_and_insert=True):
@@ -165,6 +213,31 @@ def generate_random_qr(products=PRODUCTS_TO_GENERATE, suppliers=SUPPLIERS_TO_GEN
     return json.dumps(qr_data)
 
 
+# numeric only barcode to represent product ID
+def generate_random_barcode(products=PRODUCTS_TO_GENERATE, show_image=True):
+
+    sql_q = f"SELECT ProductId FROM [dbo].[DimProduct] WHERE CodeType = 'bc'"
+    bc_ids_in_db = list(pd.read_sql(sql_q, engine)['ProductId'])
+    chosen_id = bc_ids_in_db[random.choice(range(1, len(bc_ids_in_db)))]
+
+    # qr_data = {
+    #     "codeId": qr_id,
+    #     'productId': str(random.choice(range(1, products))).zfill(len(str(abs(products)))),
+    #     'supplierId': str(random.choice(range(1, suppliers))).zfill(len(str(abs(suppliers)))),
+    #     'orderId': str(random.choice(range(1, orders))).zfill(len(str(abs(orders)))),
+    #     'quantity': quantity
+    # }
+
+    code = EAN13(chosen_id, writer=ImageWriter())
+    code
+    if show_image:
+        qr = qrcode.make(json.dumps(qr_data))
+        print(json.dumps(qr_data))
+        qr.show()
+
+    return json.dumps(qr_data)
+
+
 def generate_employee_emails(num_to_choose=1):
     # generate employees based on pool size and then randomly select from them until parameter # is selected
 
@@ -225,6 +298,7 @@ def main():
 
     # only pass in the global vars to make sure stuff doesnt get messy
     # drop_and_insert doesnt really work
+    # cursor.execute(f"DELETE FROM dbo.FactInventory")  # delete from fact table first or there will be FK errors
     generate_products(PRODUCTS_TO_GENERATE, drop_and_insert=False)
     generate_orders(ORDERS_TO_GENERATE, drop_and_insert=False)
     generate_suppliers(SUPPLIERS_TO_GENERATE, drop_and_insert=False)
@@ -234,6 +308,6 @@ def main():
 
     test_insert_fact_records()
 
-
-if __name__ == '__main__':
-    main()
+#
+# if __name__ == '__main__':
+#     main()
