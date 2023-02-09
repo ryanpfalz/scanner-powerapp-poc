@@ -282,8 +282,9 @@ def main():
 
     generate_random_qr(PRODUCTS_TO_GENERATE, SUPPLIERS_TO_GENERATE, ORDERS_TO_GENERATE)
     generate_random_barcode()
+    
 
-    test_insert_fact_records()
+    # test_insert_fact_records()
 
 #
 # if __name__ == '__main__':
