@@ -1,0 +1,6 @@
+pyodbc
+pandas
+names
+qrcode
+pillow
+sqlalchemy

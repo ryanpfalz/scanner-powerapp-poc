@@ -1,0 +1,7 @@
+{
+    "resourceGroupName": "scanner-app-rg",
+    "location": "centralus",
+    "serverName": "wmssvr",
+    "databaseName": "wmsdb",
+    "sqlAdminUser": "wmsadmin"
+}
