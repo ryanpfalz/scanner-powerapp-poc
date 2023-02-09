@@ -11,7 +11,7 @@ Python & PowerShell scripts will use config.json and pass.txt  -->
 
 ---
 
-# Setting up an QR/Barcode scanner Power App
+# Setting up a QR/Barcode scanner Power App
 
 This codebase is only a proof-of-concept, _*not*_ a production application, and should only be used to evaluate the technologies and serve as a foundational example.
 
